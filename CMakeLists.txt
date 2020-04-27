@@ -20,7 +20,12 @@ add_subdirectory(qfcgi)
 
 add_executable(PasswordSender main.cpp
     qfcgiapp.cpp
-
+    requestdownloader.cpp
+    parsedrequest.cpp
   )
 
 target_link_libraries(PasswordSender qfcgi Qt5::Core Qt5::Network)
+
+install(TARGETS PasswordSender
+  RUNTIME DESTINATION /home/halfgaar/
+)

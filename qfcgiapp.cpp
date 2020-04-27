@@ -2,6 +2,7 @@
 #include "QTextStream"
 #include "QHostAddress"
 #include "QTimer"
+#include "QThread"
 
 QFcgiApp::QFcgiApp(int argc, char *argv[]) : QCoreApplication(argc, argv)
 {
@@ -31,19 +32,58 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
 
     // request->getOut() is a stream which is used to write back information
     // to the webserver.
-    QTextStream ts(request->getOut());
+    //QTextStream ts(request->getOut());
 
-    ts << "Content-Type: plain/text\n";
-    ts << "\n";
-    ts << QString("Hello from %1\n").arg(this->applicationName());
-    ts << "This is what I received:\n";
+    //ts << "Content-Type: text/plain\n";
+    //ts << "\n";
+    //ts << QString("Hello from %1\n").arg(this->applicationName());
+    //ts << "This is what I received:\n";
 
-    Q_FOREACH(QString key, request->getParams()) {
-      ts << QString("%1: %2\n").arg(key).arg(request->getParam(key));
+    Q_FOREACH(QString key, request->getParams())
+    {
+        //ts << QString("%1: %2\n").arg(key).arg(request->getParam(key));
     }
 
-    ts.flush();
+    //ts.flush();
+
+    bool contentLengthAvailable = false;
+    int contentLength = request->getParam("CONTENT_LENGTH").toInt(&contentLengthAvailable);
+
+    if (contentLengthAvailable)
+    {
+        request->endRequest(1);
+        QIODevice *in = request->getIn();
+        connect(in, &QIODevice::readyRead, this, &QFcgiApp::onReadyRead);
+        RequestDownloader *downloader = new RequestDownloader(in, request, contentLength, request);
+        this->requests[in] = downloader;
+        downloader->readAvailableData();
+    }
+
+    //requests[state] = request;
 
     // Don't forget to call endRequest() to finalize the request
-    request->endRequest(0);
+    //request->endRequest(0);
 }
+
+void QFcgiApp::onReadyRead()
+{
+    QIODevice *input = static_cast<QIODevice*>(sender());
+    RequestDownloader *downloader = this->requests[input];
+    downloader->readAvailableData();
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

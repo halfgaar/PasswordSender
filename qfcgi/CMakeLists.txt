@@ -32,7 +32,7 @@ endif(NOT DISABLE_EXAMPLE)
 
 add_definitions(-Wall -Werror)
 
-set(ENABLE_DEBUG ON)
+#set(ENABLE_DEBUG ON)
 
 if (ENABLE_DEBUG)
   add_definitions(-g -O0)
@@ -63,12 +63,13 @@ add_library(qfcgi
 
 target_link_libraries(qfcgi Qt5::Core Qt5::Network)
 
-install(TARGETS qfcgi
-  ARCHIVE DESTINATION lib
-)
-install(FILES src/qfcgi.h
-  DESTINATION include
-)
-install(FILES src/qfcgi/fcgi.h src/qfcgi/request.h
-  DESTINATION include/qfcgi
-)
+# Disabled for use in my Project's master CMake file
+#install(TARGETS qfcgi
+#  ARCHIVE DESTINATION lib
+#)
+#install(FILES src/qfcgi.h
+#  DESTINATION include
+#)
+#install(FILES src/qfcgi/fcgi.h src/qfcgi/request.h
+#  DESTINATION include/qfcgi
+#)
