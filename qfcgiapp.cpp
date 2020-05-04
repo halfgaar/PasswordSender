@@ -48,18 +48,16 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
 
     bool contentLengthAvailable = false;
     int contentLength = request->getParam("CONTENT_LENGTH").toInt(&contentLengthAvailable);
+    QString contentType = request->getParam("CONTENT_TYPE");
 
     if (contentLengthAvailable)
     {
-        request->endRequest(1);
         QIODevice *in = request->getIn();
         connect(in, &QIODevice::readyRead, this, &QFcgiApp::onReadyRead);
         RequestDownloader *downloader = new RequestDownloader(in, request, contentLength, request);
         this->requests[in] = downloader;
         downloader->readAvailableData();
     }
-
-    //requests[state] = request;
 
     // Don't forget to call endRequest() to finalize the request
     //request->endRequest(0);

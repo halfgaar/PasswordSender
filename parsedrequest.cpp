@@ -1,6 +1,6 @@
 #include "parsedrequest.h"
 
-ParsedRequest::ParsedRequest(QObject *parent) : QObject(parent)
+ParsedRequest::ParsedRequest(QFCgiRequest *parent) : QObject(parent)
 {
 
 }
