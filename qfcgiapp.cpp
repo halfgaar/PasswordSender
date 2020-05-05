@@ -48,7 +48,6 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
 
     bool contentLengthAvailable = false;
     int contentLength = request->getParam("CONTENT_LENGTH").toInt(&contentLengthAvailable);
-    QString contentType = request->getParam("CONTENT_TYPE");
 
     if (contentLengthAvailable)
     {

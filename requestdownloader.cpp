@@ -33,31 +33,54 @@ void RequestDownloader::parseRequest()
 
     vmime::messageParser parser(msg);
 
-    std::cout << "Number of attachments: " << parser.getAttachmentCount() << std::endl;
-
-    for (vmime::size_t i = 0; i < parser.getAttachmentCount(); ++i)
+    if (parser.getAttachmentCount() > 0)
     {
-        vmime::shared_ptr<const vmime::attachment> att = parser.getAttachmentAt(i);
-        std::cout << "name: " << att->getName().getBuffer() << std::endl;
+        ParsedRequest parsedRequest;
 
-        std::cout << "Type: " << att->getType().getType() << std::endl;
+        for (vmime::size_t i = 0; i < parser.getAttachmentCount(); ++i)
+        {
+            vmime::shared_ptr<const vmime::attachment> att = parser.getAttachmentAt(i);
+            const std::string fileName = att->getName().getBuffer(); //vmime thinks in e-mail terms, and 'name' is taken from 'filename', not 'name'.
 
-        std::ostringstream dumpFileName(std::ios_base::ate);
-        dumpFileName << "/tmp/dumpFile" << i;
+            if (!fileName.empty()) // Uploaded files
+            {
+                UploadedFile uploadedFile(fileName, att);
+                parsedRequest.addFile(uploadedFile);
+            }
+            else // form fields
+            {
+                vmime::shared_ptr<vmime::parameterizedHeaderField> contentDisposition =
+                        att->getHeader()->findField<vmime::parameterizedHeaderField>(vmime::fields::CONTENT_DISPOSITION);
 
-        std::cout << "Writing to: " << dumpFileName.str();
+                if (contentDisposition)
+                {
+                    vmime::shared_ptr<vmime::parameter> nameParamter = contentDisposition->findParameter("name");
+                    if (nameParamter)
+                    {
+                        std::string name = nameParamter->getValue().getBuffer();
+                        FormField formField(name, att);
+                        parsedRequest.addField(formField);
+                    }
 
-        std::ofstream dumpFile(dumpFileName.str());
-        vmime::utility::outputStreamAdapter os2(dumpFile);
-        att->getData()->extractRaw(os2);
-        dumpFile.flush();
-        dumpFile.close();
+                }
+            }
 
-        std::cout << std::endl << std::endl;
+            std::cout << std::endl << std::endl;
+        }
+
+        // TODO: call callback or emit signal for parsed request.
+
+        this->request->endRequest(0);
+        parsed = true;
+    }
+    else
+    {
+        this->request->endRequest(1);
+        parsed = true;
+        return;
     }
 
-    this->request->endRequest(0);
-
+    this->request->endRequest(1);
     parsed = true;
 }
 
