@@ -9,6 +9,7 @@ class FormField
 public:
     QString name;
     QString value;
+    FormField();
     explicit FormField(const std::string &name, vmime::shared_ptr<const vmime::attachment> &attachment);
 };
 

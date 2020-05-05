@@ -3,6 +3,11 @@
 #include <sstream>
 #include <fstream>
 
+FormField::FormField()
+{
+
+}
+
 FormField::FormField(const std::string &name, vmime::shared_ptr<const vmime::attachment> &attachment) :
     name(QString::fromStdString(name))
 {

@@ -29,7 +29,7 @@ UploadedFile::UploadedFile(UploadedFile &&other)
 
 UploadedFile::~UploadedFile()
 {
-    if (QFile::exists(this->pathToDataFile))
+    if (!this->pathToDataFile.isEmpty() && QFile::exists(this->pathToDataFile))
     {
         QFile::remove(this->pathToDataFile);
     }

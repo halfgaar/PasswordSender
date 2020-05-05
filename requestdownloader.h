@@ -23,7 +23,7 @@ public:
     int parsed = false;
 
     // TODO: I think it makes seince to add the content-type header here too, and prepend the bytes.
-    explicit RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength, QFCgiRequest *parent = nullptr);
+    explicit RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength, QFCgiRequest *parent);
 
     void readAvailableData();
 

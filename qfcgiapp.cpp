@@ -27,9 +27,6 @@ QFcgiApp::~QFcgiApp()
 
 void QFcgiApp::onNewRequest(QFCgiRequest *request)
 {
-    // You have a new request, this sample implementation will write back
-    // a list of all received parameter.
-
     // request->getOut() is a stream which is used to write back information
     // to the webserver.
     //QTextStream ts(request->getOut());
@@ -39,13 +36,6 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
     //ts << QString("Hello from %1\n").arg(this->applicationName());
     //ts << "This is what I received:\n";
 
-    Q_FOREACH(QString key, request->getParams())
-    {
-        //ts << QString("%1: %2\n").arg(key).arg(request->getParam(key));
-    }
-
-    //ts.flush();
-
     bool contentLengthAvailable = false;
     int contentLength = request->getParam("CONTENT_LENGTH").toInt(&contentLengthAvailable);
 
@@ -53,13 +43,12 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
     {
         QIODevice *in = request->getIn();
         connect(in, &QIODevice::readyRead, this, &QFcgiApp::onReadyRead);
+
         RequestDownloader *downloader = new RequestDownloader(in, request, contentLength, request);
+        connect(downloader, &RequestDownloader::requestParsed, this, &QFcgiApp::requestParsed);
         this->requests[in] = downloader;
         downloader->readAvailableData();
     }
-
-    // Don't forget to call endRequest() to finalize the request
-    //request->endRequest(0);
 }
 
 void QFcgiApp::onReadyRead()
@@ -67,8 +56,22 @@ void QFcgiApp::onReadyRead()
     QIODevice *input = static_cast<QIODevice*>(sender());
     RequestDownloader *downloader = this->requests[input];
     downloader->readAvailableData();
+}
 
+void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
+{
+    QIODevice *out = parsedRequest->fcgiRequest->getOut();
+    QTextStream ts(out);
+    ts << "Content-Type: text/plain\n";
+    ts << "\n";
 
+    if (parsedRequest->scriptURL.startsWith("/upload"))
+    {
+        //TODO: error handling/handler. formfield may be default constructed one.
+
+        SubmittedSecret secret(parsedRequest->formFields["password"].value, parsedRequest->files);
+        this->submittedSecrets[secret.uuid] = secret;
+    }
 }
 
 

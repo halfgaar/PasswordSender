@@ -17,6 +17,7 @@ RequestDownloader::RequestDownloader(QIODevice *input, QFCgiRequest *request, in
 
 }
 
+// TODO: can I convert all the c++ streams to QIODevices that run competely non-blocking?
 void RequestDownloader::parseRequest()
 {
     const QString contentType = QString("%1: %2").arg(vmime::fields::CONTENT_TYPE).arg(this->request->getParam("CONTENT_TYPE"));
@@ -35,7 +36,7 @@ void RequestDownloader::parseRequest()
 
     if (parser.getAttachmentCount() > 0)
     {
-        ParsedRequest parsedRequest;
+        ParsedRequest parsedRequest(this->request);
 
         for (vmime::size_t i = 0; i < parser.getAttachmentCount(); ++i)
         {
@@ -68,10 +69,15 @@ void RequestDownloader::parseRequest()
             std::cout << std::endl << std::endl;
         }
 
-        // TODO: call callback or emit signal for parsed request.
+        // TODO: decide this: because the slot is in the same thread, it will execute as if a function all, and parsedRequest is cleaned up when
+        // going out of scope, right after having ended the request. If we ever make the app multi threaded, we need to make sure requests
+        // stay within the thread, to avoid having to put endrequest() to some signal. So, signals may not be the logical choice. A
+        // Simpel callback perhaps?
+        emit requestParsed(&parsedRequest);
 
         this->request->endRequest(0);
         parsed = true;
+        return;
     }
     else
     {
@@ -85,6 +91,7 @@ void RequestDownloader::parseRequest()
 }
 
 // TODO: just keeping it in memory for now, but I want to write it to an encrypted temp file.
+// TODO: deal with differing content-length and actual post size, both for lost connections and hacks.
 void RequestDownloader::readAvailableData()
 {
     if (parsed)

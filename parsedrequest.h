@@ -10,11 +10,15 @@
 class ParsedRequest : public QObject
 {
     Q_OBJECT
-    std::vector<UploadedFile> files;
-    QList<FormField> formFields;
-
 public:
-    explicit ParsedRequest(QFCgiRequest *parent = nullptr);
+    std::vector<UploadedFile> files;
+    QHash<QString,FormField> formFields;
+    QHash<QString,QString> params;
+
+    QString scriptURL;
+    QFCgiRequest *fcgiRequest = nullptr;
+
+    explicit ParsedRequest(QFCgiRequest *parent);
     void addFile(UploadedFile &uploaded_file);
     void addField(const FormField &formField);
 
