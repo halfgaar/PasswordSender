@@ -11,7 +11,8 @@ class QFcgiApp : public QCoreApplication
 {
     QFCgi *fcgi = nullptr;
     QHash<QIODevice*, RequestDownloader*> requests;
-    QHash<QString, SubmittedSecret> submittedSecrets;
+    QHash<QString, std::shared_ptr<SubmittedSecret>> submittedSecrets;
+
 public:
     QFcgiApp(int argc, char *argv[]);
     ~QFcgiApp();

@@ -24,6 +24,7 @@ class SecretFile
 {
     SubmittedSecret *parentSecret = nullptr;
     QString name;
+    QString sanitizedName;
 public:
     SecretFile(SubmittedSecret *parentSecret, const UploadedFile &uploadedFile);
     QString getFilePath() const;
