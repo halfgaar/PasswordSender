@@ -41,6 +41,8 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
     bool contentLengthAvailable = false;
     int contentLength = request->getParam("CONTENT_LENGTH").toInt(&contentLengthAvailable);
 
+    // TODO: check content length max
+
     QIODevice *in = request->getIn();
     connect(in, &QIODevice::readyRead, this, &QFcgiApp::onReadyRead);
 
@@ -58,6 +60,7 @@ void QFcgiApp::onReadyRead()
 }
 
 // TODO: generic error handler with exceptions and error template?
+// TODO: renderToReponse
 void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 {
     QIODevice *out = parsedRequest->fcgiRequest->getOut();
@@ -67,25 +70,24 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 
     if (parsedRequest->scriptURL.startsWith("/passwordsender/upload"))
     {
-        QString recipient = parsedRequest->formFields["recipient"].value;
-        if (recipient.isEmpty())
+        std::shared_ptr<SubmittedSecret> secret(new SubmittedSecret(parsedRequest->formFields["recipient"].value,
+                                                parsedRequest->formFields["password"].value, parsedRequest->files));
+
+        if (!secret->isValid())
         {
-            ts.flush();
             return;
         }
 
-        std::shared_ptr<SubmittedSecret> secret(new SubmittedSecret(parsedRequest->formFields["password"].value, parsedRequest->files));
         this->submittedSecrets.insert(secret->uuid, secret);
 
-        QString url = QString("http://bla.halfgaar.net/passwordsender/show/%1").arg(secret->uuid);
-        std::cout << "Download url: " << url.toStdString() << std::endl;
-
-        QString msg = QString("Informatie gestuurd naar %1").arg(recipient);
+        QString msg = QString("Informatie gestuurd naar %1").arg(secret->recipient);
 
         QFile templateHtml("/var/www/html/password_sender/template.html");
         templateHtml.open(QFile::ReadOnly);
         QString templateContent = QString::fromUtf8(templateHtml.readAll());
         templateContent.replace("{message}", msg);
+
+        this->emailSender.SendEmail(*secret);
 
         ts << templateContent;
         ts.flush();

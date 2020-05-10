@@ -15,8 +15,11 @@ public:
     QString passwordField;
     QString uuid;
     QList<SecretFile> secretFiles;
+    QString recipient;
 
-    SubmittedSecret(QString &passwordField, const std::vector<UploadedFile> &uploadedFiles);
+    SubmittedSecret(QString &recipient, QString &passwordField, const std::vector<UploadedFile> &uploadedFiles);
+    QString getLink();
+    bool isValid();
 
 };
 

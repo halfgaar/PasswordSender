@@ -6,12 +6,14 @@
 #include "qfcgi/src/qfcgi.h"
 #include "requestdownloader.h"
 #include "submittedsecret.h"
+#include "emailsender.h"
 
 class QFcgiApp : public QCoreApplication
 {
     QFCgi *fcgi = nullptr;
     QHash<QIODevice*, RequestDownloader*> requests;
     QHash<QString, std::shared_ptr<SubmittedSecret>> submittedSecrets;
+    EmailSender emailSender;
 
 public:
     QFcgiApp(int argc, char *argv[]);
