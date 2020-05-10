@@ -99,6 +99,9 @@ void RequestDownloader::readAvailableData()
 
     qint64 n = this->input->bytesAvailable();
 
+    if (n > (requestData.size() - rI) )
+        throw std::runtime_error("More bytes than Content-Length");
+
     if (n > 0)
     {
         requestData.replace(rI, static_cast<int>(n), input->readAll());

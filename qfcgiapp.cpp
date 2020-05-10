@@ -57,25 +57,47 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
     //ts << QString("Hello from %1\n").arg(this->applicationName());
     //ts << "This is what I received:\n";
 
-    bool contentLengthAvailable = false;
-    int contentLength = request->getParam("CONTENT_LENGTH").toInt(&contentLengthAvailable);
+    try
+    {
+        bool contentLengthAvailable = false;
+        int contentLength = request->getParam("CONTENT_LENGTH").toInt(&contentLengthAvailable);
 
-    // TODO: check content length max
+        if (contentLength > (128 * 1024 * 1024))
+            throw std::runtime_error("Post-data too large");
 
-    QIODevice *in = request->getIn();
-    connect(in, &QIODevice::readyRead, this, &QFcgiApp::onReadyRead);
+        QIODevice *in = request->getIn();
+        connect(in, &QIODevice::readyRead, this, &QFcgiApp::onReadyRead);
 
-    RequestDownloader *downloader = new RequestDownloader(in, request, contentLength, request);
-    connect(downloader, &RequestDownloader::requestParsed, this, &QFcgiApp::requestParsed);
-    this->requests[in] = downloader;
-    downloader->readAvailableData();
+        RequestDownloader *downloader = new RequestDownloader(in, request, contentLength, request);
+        connect(downloader, &RequestDownloader::requestParsed, this, &QFcgiApp::requestParsed);
+        this->requests[in] = downloader;
+        downloader->readAvailableData();
+    }
+    catch (std::exception &ex)
+    {
+        QHash<QString,QString> vars;
+        vars["{errormsg}"] = ex.what();
+        renderReponse("/var/www/html/password_sender/errortemplate.html", 500, request->getOut(), vars);
+        request->endRequest(1);
+    }
 }
 
 void QFcgiApp::onReadyRead()
 {
     QIODevice *input = static_cast<QIODevice*>(sender());
     RequestDownloader *downloader = this->requests[input];
-    downloader->readAvailableData();
+
+    try
+    {
+        downloader->readAvailableData();
+    }
+    catch (std::exception &ex)
+    {
+        QHash<QString,QString> vars;
+        vars["{errormsg}"] = ex.what();
+        renderReponse("/var/www/html/password_sender/errortemplate.html", 500, downloader->request->getOut(), vars);
+        downloader->request->endRequest(1);
+    }
 }
 
 // TODO: generic error handler with exceptions and error template?
@@ -154,13 +176,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
         vars["{errormsg}"] = ex.what();
         renderReponse("/var/www/html/password_sender/errortemplate.html", ex.httpCode, out, vars);
     }
-    catch (std::runtime_error &ex)
-    {
-        QHash<QString,QString> vars;
-        vars["{errormsg}"] = "Fout";
-        renderReponse("/var/www/html/password_sender/errortemplate.html", 500, out, vars);
-    }
-    catch (std::exception &ex)
+    catch (std::exception)
     {
         QHash<QString,QString> vars;
         vars["{errormsg}"] = "System error";
