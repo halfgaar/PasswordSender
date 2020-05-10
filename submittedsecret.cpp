@@ -15,7 +15,7 @@ SubmittedSecret::SubmittedSecret(QString &recipient, QString &passwordField, con
 QString SubmittedSecret::getLink()
 {
     // TODO: don't hardcode hostname
-    QString result = QString("https://wachtwoorden.geborsteldstaal.nl/passwordsender/show/%1").arg(this->uuid);
+    QString result = QString("https://wachtwoorden.geborsteldstaal.nl/passwordsender/showlanding/%1").arg(this->uuid);
     return result;
 }
 

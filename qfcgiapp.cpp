@@ -27,6 +27,25 @@ QFcgiApp::~QFcgiApp()
 
 }
 
+void QFcgiApp::renderReponse(const QString &templateFilePath, const int httpCode, QIODevice *out, const QHash<QString,QString> &templateVariables)
+{
+    QFile f(templateFilePath);
+    f.open(QFile::ReadOnly);
+    QString templateData = QString::fromUtf8(f.readAll());
+
+    for (const QString &key : templateVariables.keys())
+    {
+        templateData.replace(key, templateVariables[key]);
+    }
+
+    QTextStream ts(out);
+    ts << "Status: " << httpCode << "\r\n"; // Not HTTP header, but FCGI header.
+    ts << "Content-Type: text/html\r\n";
+    ts << "\r\n";
+    ts << templateData;
+    ts.flush();
+}
+
 void QFcgiApp::onNewRequest(QFCgiRequest *request)
 {
     // request->getOut() is a stream which is used to write back information
@@ -64,66 +83,88 @@ void QFcgiApp::onReadyRead()
 void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 {
     QIODevice *out = parsedRequest->fcgiRequest->getOut();
-    QTextStream ts(out);
-    ts << "Content-Type: text/html\n";
-    ts << "\n";
-
-    if (parsedRequest->scriptURL.startsWith("/passwordsender/upload"))
+    try
     {
-        std::shared_ptr<SubmittedSecret> secret(new SubmittedSecret(parsedRequest->formFields["recipient"].value,
-                                                parsedRequest->formFields["password"].value, parsedRequest->files));
-
-        if (!secret->isValid())
+        if (parsedRequest->scriptURL == "/passwordsender/upload")
         {
-            return;
+            std::shared_ptr<SubmittedSecret> secret(new SubmittedSecret(parsedRequest->formFields["recipient"].value,
+                                                    parsedRequest->formFields["password"].value, parsedRequest->files));
+
+            if (!secret->isValid())
+            {
+                throw std::runtime_error("Secret invalid");
+            }
+
+            this->submittedSecrets.insert(secret->uuid, secret);
+
+            QString msg = QString("Informatie gestuurd naar %1").arg(secret->recipient);
+
+            this->emailSender.SendEmail(*secret);
+
+            QHash<QString,QString> vars;
+            vars["{message}"] = msg;
+            renderReponse("/var/www/html/password_sender/template.html", 200, out, vars);
         }
-
-        this->submittedSecrets.insert(secret->uuid, secret);
-
-        QString msg = QString("Informatie gestuurd naar %1").arg(secret->recipient);
-
-        QFile templateHtml("/var/www/html/password_sender/template.html");
-        templateHtml.open(QFile::ReadOnly);
-        QString templateContent = QString::fromUtf8(templateHtml.readAll());
-        templateContent.replace("{message}", msg);
-
-        this->emailSender.SendEmail(*secret);
-
-        ts << templateContent;
-        ts.flush();
-        return;
-    }
-    else if (parsedRequest->scriptURL.startsWith("/passwordsender/show/"))
-    {
-        const QStringList fields = parsedRequest->scriptURL.split('/');
-        const QString &uuid = fields[3];
-
-        if (uuid.length() == 0)
+        else if (parsedRequest->scriptURL == "/passwordsender/show")
         {
-            ts << "Go away" << "\n";
-            ts.flush();
-            return;
+            const QString &uuid = parsedRequest->formFields["uuid"].value;
+            std::shared_ptr<SubmittedSecret> secret = this->submittedSecrets[uuid];
+
+            if (!secret)
+            {
+                throw UserError("Dit geheim bestaat niet (meer). Mogelijk is hij verlopen.");
+            }
+            else if (!secret->isValid())
+            {
+                throw std::runtime_error("Secret invalid");
+            }
+
+            QHash<QString,QString> vars;
+            vars["{secret}"] = secret->passwordField;
+            renderReponse("/var/www/html/password_sender/showsecrettemplate.html", 200, out, vars);
+
+            this->submittedSecrets.remove(uuid);
+        }
+        else if (parsedRequest->scriptURL.startsWith("/passwordsender/showlanding/"))
+        {
+            const QStringList fields = parsedRequest->scriptURL.split('/');
+            const QString &uuid = fields[3];
+
+            if (uuid.isEmpty())
+            {
+                throw UserError("Geen geheim opgegeven. Je zit de boel te flessen.");
+            }
+
+            QHash<QString,QString> vars;
+            vars["{uuid}"] = uuid;
+            renderReponse("/var/www/html/password_sender/showlandingtemplate.html", 200, out, vars);
+        }
+        else if (parsedRequest->scriptURL.startsWith("/passwordsender/downloadfile/"))
+        {
+            // TODO: serve file from disk, decrypting on the fly. Just setting headers and go?
         }
         else
         {
-            std::shared_ptr<SubmittedSecret> &secret = this->submittedSecrets[uuid];
-            if (secret)
-            {
-                ts << "Password: " << secret->passwordField << "\n";
-                ts.flush();
-                return;
-            }
-            else
-            {
-                ts << "No secret by that UUID" << "\n";
-                ts.flush();
-                return;
-            }
+            throw UserError("Pagina bestaat niet.", 404);
         }
     }
-    else if (parsedRequest->scriptURL.startsWith("/passwordsender/downloadfile/"))
+    catch (UserError &ex)
     {
-        // TODO: serve file from disk, decrypting on the fly. Just setting headers and go?
+        QHash<QString,QString> vars;
+        vars["{errormsg}"] = ex.what();
+        renderReponse("/var/www/html/password_sender/errortemplate.html", ex.httpCode, out, vars);
+    }
+    catch (std::runtime_error &ex)
+    {
+        QHash<QString,QString> vars;
+        vars["{errormsg}"] = "Fout";
+        renderReponse("/var/www/html/password_sender/errortemplate.html", 500, out, vars);
+    }
+    catch (std::exception &ex)
+    {
+        QHash<QString,QString> vars;
+        vars["{errormsg}"] = "System error";
+        renderReponse("/var/www/html/password_sender/errortemplate.html", 500, out, vars);
     }
 }
 
