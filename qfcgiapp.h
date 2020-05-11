@@ -27,6 +27,7 @@ private slots:
     void onNewRequest(QFCgiRequest *request);
     void onReadyRead();
     void requestParsed(ParsedRequest *parsedRequest);
+    void onConnectionClose();
 };
 
 #endif // QFCGIAPP_H

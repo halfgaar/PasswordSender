@@ -70,6 +70,7 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
 
         RequestDownloader *downloader = new RequestDownloader(in, request, contentLength, request);
         connect(downloader, &RequestDownloader::requestParsed, this, &QFcgiApp::requestParsed);
+        connect(in, &QIODevice::aboutToClose, this, &QFcgiApp::onConnectionClose); // Doesn't work?
         this->requests[in] = downloader;
         downloader->readAvailableData();
     }
@@ -181,6 +182,17 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
         QHash<QString,QString> vars;
         vars["{errormsg}"] = "System error";
         renderReponse("/var/www/html/password_sender/errortemplate.html", 500, out, vars);
+    }
+}
+
+void QFcgiApp::onConnectionClose()
+{
+    QIODevice *inp = dynamic_cast<QIODevice*>(sender());
+
+    if (this->requests.contains(inp))
+    {
+        this->requests.remove(inp);
+        inp = nullptr;
     }
 }
 
