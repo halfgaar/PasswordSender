@@ -101,8 +101,6 @@ void QFcgiApp::onReadyRead()
     }
 }
 
-// TODO: generic error handler with exceptions and error template?
-// TODO: renderToReponse
 void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 {
     QIODevice *out = parsedRequest->fcgiRequest->getOut();
