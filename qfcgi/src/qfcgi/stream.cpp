@@ -25,6 +25,7 @@ QFCgiStream::QFCgiStream(QObject *parent) : QIODevice(parent) {
 }
 
 QFCgiStream::~QFCgiStream() {
+    close();
 }
 
 bool QFCgiStream::atEnd() const {
