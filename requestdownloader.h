@@ -18,11 +18,11 @@ public:
 
     QIODevice *input = nullptr;
     QFCgiRequest *request = nullptr;
-    QByteArray requestData;
+    std::unique_ptr<QByteArray> requestData;
     int rI = 0;
     int parsed = false;
+    QString contentType;
 
-    // TODO: I think it makes seince to add the content-type header here too, and prepend the bytes.
     explicit RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength, QFCgiRequest *parent);
 
     void readAvailableData();

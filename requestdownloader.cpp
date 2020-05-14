@@ -11,26 +11,27 @@
 RequestDownloader::RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength, QFCgiRequest *parent) :
     QObject(parent),
     input(input),
-    request(request),
-    requestData(contentLength, 0)
+    request(request)
 {
+    contentType = QString("%1: %2").arg(vmime::fields::CONTENT_TYPE).arg(this->request->getParam("CONTENT_TYPE"));
+    QByteArray header = QString("%1\r\n\r\n").arg(this->contentType).toUtf8();
 
+    // Adding the header to the body and adding to the content length because vmime wants the content length header as part of the body. That
+    // is, it has its own concept of header and body.
+    rI = header.length();
+    int len = contentLength + header.length();
+    requestData.reset(new QByteArray(len, 0));
+
+    requestData->replace(0, header.length(), header);
 }
 
 // TODO: can I convert all the c++ streams to QIODevices that run competely non-blocking?
 void RequestDownloader::parseRequest()
 {
-    const QString contentType = QString("%1: %2").arg(vmime::fields::CONTENT_TYPE).arg(this->request->getParam("CONTENT_TYPE"));
-
-    std::fstream rommel("/tmp/rommel", std::ios::trunc | std::ios_base::binary | std::ios_base::in | std::ios_base::out);
-    rommel << contentType.toStdString() << std::endl;
-    rommel << std::endl;
-    rommel << this->requestData.toStdString();
-    rommel.flush();
+    vmime::shared_ptr<vmime::utility::inputStreamStringAdapter> isa = vmime::make_shared<vmime::utility::inputStreamStringAdapter>(this->requestData->toStdString());
 
     vmime::shared_ptr<vmime::message> msg = vmime::make_shared<vmime::message>();
-    vmime::shared_ptr<vmime::utility::inputStreamAdapter> isa = vmime::make_shared<vmime::utility::inputStreamAdapter>(rommel);
-    msg->parse(isa, static_cast<vmime::size_t>(rommel.tellp()));
+    msg->parse(isa, static_cast<size_t>(this->requestData->length()));
 
     vmime::messageParser parser(msg);
 
@@ -99,19 +100,19 @@ void RequestDownloader::readAvailableData()
 
     qint64 n = this->input->bytesAvailable();
 
-    if (n > (requestData.size() - rI) )
+    if (n > (requestData->size() - rI) )
         throw std::runtime_error("More bytes than Content-Length");
 
     if (n > 0)
     {
-        requestData.replace(rI, static_cast<int>(n), input->readAll());
+        requestData->replace(rI, static_cast<int>(n), input->readAll());
 
         rI += n;
     }
 
-    Q_ASSERT(rI <= requestData.size());
+    Q_ASSERT(rI <= requestData->size());
 
-    if (rI == requestData.size())
+    if (rI == requestData->size())
     {
         parseRequest();
     }
