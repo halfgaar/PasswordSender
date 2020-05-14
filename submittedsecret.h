@@ -4,6 +4,7 @@
 #include <QString>
 #include "parsedrequest.h"
 #include <QVector>
+#include <QDateTime>
 #include "QFile"
 #include "QUuid"
 
@@ -16,8 +17,9 @@ public:
     QString uuid;
     QList<SecretFile> secretFiles;
     QString recipient;
+    QDateTime submittedAt;
 
-    SubmittedSecret(QString &recipient, QString &passwordField, const std::vector<UploadedFile> &uploadedFiles);
+    SubmittedSecret(QString &recipient, QString &passwordField, std::vector<UploadedFile> &uploadedFiles);
     QString getLink();
     bool isValid();
 
@@ -27,9 +29,9 @@ class SecretFile
 {
     SubmittedSecret *parentSecret = nullptr;
     QString name;
-    QString sanitizedName;
+    QString uuid;
 public:
-    SecretFile(SubmittedSecret *parentSecret, const UploadedFile &uploadedFile);
+    SecretFile(SubmittedSecret *parentSecret, UploadedFile &uploadedFile);
     QString getFilePath() const;
 };
 

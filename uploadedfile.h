@@ -15,6 +15,12 @@ public:
     UploadedFile(const UploadedFile &other) = delete;
     UploadedFile(UploadedFile &&other);
     ~UploadedFile();
+
+    /**
+     * @brief renameAndrelease rename the file, thereby it will automatically no longer removed by this class' destructor.
+     * @param newPath
+     */
+    void renameAndrelease(const QString &newPath);
 };
 
 #endif // UPLOADEDFILE_H

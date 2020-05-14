@@ -1,11 +1,12 @@
 #include "submittedsecret.h"
 
-SubmittedSecret::SubmittedSecret(QString &recipient, QString &passwordField, const std::vector<UploadedFile> &uploadedFiles) :
+SubmittedSecret::SubmittedSecret(QString &recipient, QString &passwordField, std::vector<UploadedFile> &uploadedFiles) :
     passwordField(passwordField),
     uuid(QUuid::createUuid().toString().replace('{', "").replace('}',"")), // My Qt version doesn't have the StringFormat option.
-    recipient(recipient)
+    recipient(recipient),
+    submittedAt(QDateTime::currentDateTime())
 {
-    for (const UploadedFile &uploadedFile : uploadedFiles)
+    for (UploadedFile &uploadedFile : uploadedFiles)
     {
         SecretFile secretFile(this, uploadedFile);
         this->secretFiles.append(secretFile);
@@ -24,28 +25,16 @@ bool SubmittedSecret::isValid()
     return !recipient.isEmpty() && !passwordField.isEmpty();
 }
 
-QString sanitizeNameForDisk(const QString &input)
-{
-    QString result;
-    for (QChar c : input)
-    {
-        result.append(c);
-
-        // TODO
-    }
-
-    return result;
-}
-
-SecretFile::SecretFile(SubmittedSecret *parentSecret, const UploadedFile &uploadedFile) :
+SecretFile::SecretFile(SubmittedSecret *parentSecret, UploadedFile &uploadedFile) :
     parentSecret(parentSecret),
-    name(uploadedFile.name)
+    name(uploadedFile.name),
+    uuid(QUuid::createUuid().toString().replace('{', "").replace('}',"")) // My Qt version doesn't have the StringFormat option.
 {
-    QFile::copy(uploadedFile.pathToDataFile, getFilePath());
+    uploadedFile.renameAndrelease(getFilePath());
 }
 
 QString SecretFile::getFilePath() const
 {
-    QString path = QString("/tmp/PasswordSender__secret__%1__%2").arg(parentSecret->uuid);
+    QString path = QString("/tmp/PasswordSender__secret__%1__file__%2").arg(parentSecret->uuid).arg(uuid);
     return path;
 }

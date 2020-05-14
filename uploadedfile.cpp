@@ -34,3 +34,8 @@ UploadedFile::~UploadedFile()
         QFile::remove(this->pathToDataFile);
     }
 }
+
+void UploadedFile::renameAndrelease(const QString &newPath)
+{
+    QFile::rename(this->pathToDataFile, newPath);
+}
