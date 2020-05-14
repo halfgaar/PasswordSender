@@ -23,6 +23,9 @@ RequestDownloader::RequestDownloader(QIODevice *input, QFCgiRequest *request, in
     requestData.reset(new QByteArray(len, 0));
 
     requestData->replace(0, header.length(), header);
+
+    timeoutTimer.setInterval(10000);
+    connect(&timeoutTimer, &QTimer::timeout, this, &RequestDownloader::onTimeout);
 }
 
 // TODO: can I convert all the c++ streams to QIODevices that run competely non-blocking?
@@ -91,12 +94,19 @@ void RequestDownloader::parseRequest()
     parsed = true;
 }
 
+void RequestDownloader::onTimeout()
+{
+    std::cerr << "Timing out request" << std::endl;
+    this->request->endRequest(1);
+}
+
 // TODO: just keeping it in memory for now, but I want to write it to an encrypted temp file.
-// TODO: deal with differing content-length and actual post size, both for lost connections and hacks.
 void RequestDownloader::readAvailableData()
 {
     if (parsed)
         return;
+
+    this->timeoutTimer.start();
 
     qint64 n = this->input->bytesAvailable();
 
@@ -114,6 +124,7 @@ void RequestDownloader::readAvailableData()
 
     if (rI == requestData->size())
     {
+        this->timeoutTimer.stop();
         parseRequest();
     }
 }

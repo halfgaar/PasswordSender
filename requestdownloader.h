@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QIODevice>
+#include <QTimer>
 #include "qfcgi/src/qfcgi.h"
 #include "parsedrequest.h"
 
@@ -14,6 +15,10 @@ class RequestDownloader : public QObject
     Q_OBJECT
 
     void parseRequest();
+
+private slots:
+    void onTimeout();
+
 public:
 
     QIODevice *input = nullptr;
@@ -22,6 +27,7 @@ public:
     int rI = 0;
     int parsed = false;
     QString contentType;
+    QTimer timeoutTimer;
 
     explicit RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength, QFCgiRequest *parent);
 
