@@ -8,9 +8,14 @@ SubmittedSecret::SubmittedSecret(QString &recipient, QString &passwordField, std
 {
     for (UploadedFile &uploadedFile : uploadedFiles)
     {
-        SecretFile secretFile(this, uploadedFile);
-        this->secretFiles.append(secretFile);
+        std::shared_ptr<SecretFile> s(new SecretFile(this, uploadedFile));
+        this->secretFiles.append(s);
     }
+}
+
+SubmittedSecret::~SubmittedSecret()
+{
+
 }
 
 QString SubmittedSecret::getLink()
@@ -28,13 +33,16 @@ bool SubmittedSecret::isValid()
 SecretFile::SecretFile(SubmittedSecret *parentSecret, UploadedFile &uploadedFile) :
     parentSecret(parentSecret),
     name(uploadedFile.name),
-    uuid(QUuid::createUuid().toString().replace('{', "").replace('}',"")) // My Qt version doesn't have the StringFormat option.
+    uuid(QUuid::createUuid().toString().replace('{', "").replace('}',"")), // My Qt version doesn't have the StringFormat option.
+    filePath(QString("/tmp/PasswordSender__secret__%1__file__%2").arg(parentSecret->uuid).arg(uuid))
 {
-    uploadedFile.renameAndrelease(getFilePath());
+    uploadedFile.renameAndrelease(this->filePath);
 }
 
-QString SecretFile::getFilePath() const
+SecretFile::~SecretFile()
 {
-    QString path = QString("/tmp/PasswordSender__secret__%1__file__%2").arg(parentSecret->uuid).arg(uuid);
-    return path;
+    if (!this->filePath.isEmpty() && QFile::exists(this->filePath))
+    {
+        QFile::remove(this->filePath);
+    }
 }
