@@ -22,3 +22,8 @@ void ParsedRequest::addField(const FormField &formField)
 {
     this->formFields[formField.name] = formField;
 }
+
+void ParsedRequest::requestDone(quint32 code)
+{
+    this->fcgiRequest->endRequest(code);
+}

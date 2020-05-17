@@ -66,11 +66,13 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
             throw std::runtime_error("Post-data too large");
 
         QIODevice *in = request->getIn();
+        QIODevice *out = request->getOut();
         connect(in, &QIODevice::readyRead, this, &QFcgiApp::onReadyRead);
 
-        RequestDownloader *downloader = new RequestDownloader(in, request, contentLength, request);
+        RequestDownloader *downloader = new RequestDownloader(in, request, contentLength);
         connect(downloader, &RequestDownloader::requestParsed, this, &QFcgiApp::requestParsed);
-        connect(in, &QIODevice::aboutToClose, this, &QFcgiApp::onConnectionClose); // Doesn't work?
+        connect(in, &QIODevice::aboutToClose, this, &QFcgiApp::onConnectionClose);
+        connect(out, &QIODevice::aboutToClose, this, &QFcgiApp::onConnectionClose);
         this->requests[in] = downloader;
         downloader->readAvailableData();
     }
@@ -101,6 +103,12 @@ void QFcgiApp::onReadyRead()
     }
 }
 
+void QFcgiApp::onUploadDone()
+{
+    RequestUploader *uploader = static_cast<RequestUploader*>(sender());
+    uploader->getFcgiRequest()->endRequest(0);
+}
+
 void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 {
     QIODevice *out = parsedRequest->fcgiRequest->getOut();
@@ -125,6 +133,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
             QHash<QString,QString> vars;
             vars["{message}"] = msg;
             renderReponse("/var/www/html/password_sender/template.html", 200, out, vars);
+            parsedRequest->requestDone(0);
         }
         else if (parsedRequest->scriptURL == "/passwordsender/show")
         {
@@ -140,11 +149,21 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
                 throw std::runtime_error("Secret invalid");
             }
 
+            QString fileLink;
+
+            if (!secret->secretFiles.empty())
+            {
+                std::shared_ptr<SecretFile> file = *secret->secretFiles.begin(); // TODO: multiple files. The first is just for testing.
+                fileLink = QString("<a href=\"%1\">%2</a>").arg(file->getLink()).arg(file->name);
+            }
+
             QHash<QString,QString> vars;
             vars["{secret}"] = secret->passwordField;
+            vars["{filelink}"] = fileLink;
             renderReponse("/var/www/html/password_sender/showsecrettemplate.html", 200, out, vars);
 
-            this->submittedSecrets.remove(uuid);
+            //this->submittedSecrets.remove(uuid); // TODO: I think we need an expire an hour, otherwise you can't download the files.
+            parsedRequest->requestDone(0);
         }
         else if (parsedRequest->scriptURL.startsWith("/passwordsender/showlanding/"))
         {
@@ -159,10 +178,36 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
             QHash<QString,QString> vars;
             vars["{uuid}"] = uuid;
             renderReponse("/var/www/html/password_sender/showlandingtemplate.html", 200, out, vars);
+            parsedRequest->requestDone(0);
         }
-        else if (parsedRequest->scriptURL.startsWith("/passwordsender/downloadfile/"))
+        else if (parsedRequest->scriptURL.startsWith("/passwordsender/downloadfile/")) // URL like /passwordsender/downloadfile/[uuid-secret]/[uuid-file]
         {
-            // TODO: serve file from disk, decrypting on the fly. Just setting headers and go?
+            const QStringList fields = parsedRequest->scriptURL.split('/');
+            const QString &secretUuid = fields[3];
+            const QString &fileUuid = fields[4];
+
+            if (secretUuid.isEmpty() || fileUuid.isEmpty())
+            {
+                throw UserError("Geen geheim of bestand opgegeven. Je zit de boel te flessen.");
+            }
+
+            std::shared_ptr<SubmittedSecret> secret = this->submittedSecrets[secretUuid];
+
+            if (!secret)
+            {
+                throw UserError("Dit geheim bestaat niet (meer). Mogelijk is hij verlopen.");
+            }
+            else if (!secret->isValid())
+            {
+                throw std::runtime_error("Secret invalid");
+            }
+
+            std::shared_ptr<SecretFile> secretFile = secret->secretFiles[fileUuid];
+
+            QIODevice *out = parsedRequest->fcgiRequest->getOut();
+            RequestUploader *uploader = new RequestUploader(out, secretFile, parsedRequest->fcgiRequest);
+            connect(uploader, &RequestUploader::uploadDone, this, &QFcgiApp::onUploadDone);
+            uploader->uploadNextChunk();
         }
         else
         {
@@ -174,23 +219,25 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
         QHash<QString,QString> vars;
         vars["{errormsg}"] = ex.what();
         renderReponse("/var/www/html/password_sender/errortemplate.html", ex.httpCode, out, vars);
+        parsedRequest->requestDone(1);
     }
     catch (std::exception)
     {
         QHash<QString,QString> vars;
         vars["{errormsg}"] = "System error";
         renderReponse("/var/www/html/password_sender/errortemplate.html", 500, out, vars);
+        parsedRequest->requestDone(1);
     }
 }
 
 void QFcgiApp::onConnectionClose()
 {
-    QIODevice *inp = dynamic_cast<QIODevice*>(sender());
+    QIODevice *ioDev = dynamic_cast<QIODevice*>(sender());
 
-    if (this->requests.contains(inp))
+    if (this->requests.contains(ioDev))
     {
-        this->requests.remove(inp);
-        inp = nullptr;
+        this->requests.remove(ioDev);
+        ioDev = nullptr;
     }
 }
 

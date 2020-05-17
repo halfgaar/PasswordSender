@@ -19,7 +19,7 @@ class SubmittedSecret
 public:
     QString passwordField;
     QString uuid;
-    QList<std::shared_ptr<SecretFile>> secretFiles;
+    QHash<QString,std::shared_ptr<SecretFile>> secretFiles;
     QString recipient;
     QDateTime submittedAt;
 
@@ -38,15 +38,17 @@ public:
 class SecretFile
 {
     SubmittedSecret *parentSecret = nullptr;
+public:
     QString name;
     QString uuid;
     QString filePath;
-public:
+
     SecretFile(SubmittedSecret *parentSecret, UploadedFile &uploadedFile);
     SecretFile(const SecretFile &other) = delete;
     SecretFile(SecretFile &&other) = delete;
     ~SecretFile();
     SecretFile & operator=(const SecretFile&) = delete;
+    QString getLink();
 };
 
 #endif // SUBMITTEDSECRET_H

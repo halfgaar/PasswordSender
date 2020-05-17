@@ -21,8 +21,7 @@ public:
     explicit ParsedRequest(QFCgiRequest *parent);
     void addFile(UploadedFile &uploaded_file);
     void addField(const FormField &formField);
-
-signals:
+    void requestDone(quint32 code);
 
 public slots:
 };

@@ -10,6 +10,7 @@
 #include "uploadedfile.h"
 #include "formfield.h"
 
+// TODO: hide privates better.
 class RequestDownloader : public QObject
 {
     Q_OBJECT
@@ -29,7 +30,7 @@ public:
     QString contentType;
     QTimer timeoutTimer;
 
-    explicit RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength, QFCgiRequest *parent);
+    explicit RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength);
 
     void readAvailableData();
 

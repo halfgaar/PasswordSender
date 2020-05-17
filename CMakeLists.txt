@@ -27,6 +27,7 @@ add_executable(PasswordSender main.cpp
     submittedsecret.cpp
     emailsender.cpp
     usererror.cpp
+    requestuploader.cpp
   )
 
 target_link_libraries(PasswordSender qfcgi Qt5::Core Qt5::Network vmime)

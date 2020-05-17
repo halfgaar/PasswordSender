@@ -9,7 +9,7 @@ SubmittedSecret::SubmittedSecret(QString &recipient, QString &passwordField, std
     for (UploadedFile &uploadedFile : uploadedFiles)
     {
         std::shared_ptr<SecretFile> s(new SecretFile(this, uploadedFile));
-        this->secretFiles.append(s);
+        this->secretFiles[s->uuid] = s;
     }
 }
 
@@ -45,4 +45,11 @@ SecretFile::~SecretFile()
     {
         QFile::remove(this->filePath);
     }
+}
+
+QString SecretFile::getLink()
+{
+    // TODO: don't hardcode hostname
+    QString result = QString("https://wachtwoorden.geborsteldstaal.nl/passwordsender/downloadfile/%1/%2").arg(parentSecret->uuid).arg(this->uuid);
+    return result;
 }

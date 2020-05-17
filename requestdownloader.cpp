@@ -8,8 +8,8 @@
 #include "vmime/vmime.hpp"
 #include "vmime/contentTypeField.hpp"
 
-RequestDownloader::RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength, QFCgiRequest *parent) :
-    QObject(parent),
+RequestDownloader::RequestDownloader(QIODevice *input, QFCgiRequest *request, int contentLength) :
+    QObject(request),
     input(input),
     request(request)
 {
@@ -78,19 +78,14 @@ void RequestDownloader::parseRequest()
         // stay within the thread, to avoid having to put endrequest() to some signal. So, signals may not be the logical choice. A
         // Simpel callback perhaps?
         emit requestParsed(&parsedRequest);
-
-        this->request->endRequest(0);
         parsed = true;
-        return;
     }
     else
     {
         this->request->endRequest(1);
         parsed = true;
-        return;
     }
 
-    this->request->endRequest(1);
     parsed = true;
 }
 

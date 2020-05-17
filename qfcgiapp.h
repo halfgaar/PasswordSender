@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 #include "qfcgi/src/qfcgi.h"
 #include "requestdownloader.h"
+#include "requestuploader.h"
 #include "submittedsecret.h"
 #include "emailsender.h"
 #include <QHash>
@@ -26,6 +27,7 @@ public:
 private slots:
     void onNewRequest(QFCgiRequest *request);
     void onReadyRead();
+    void onUploadDone();
     void requestParsed(ParsedRequest *parsedRequest);
     void onConnectionClose();
 };
