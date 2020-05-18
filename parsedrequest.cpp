@@ -2,6 +2,8 @@
 #include "algorithm"
 #include <iostream>
 
+#include <sys/random.h>
+
 ParsedRequest::ParsedRequest(QFCgiRequest *parent) : QObject(parent)
 {
     this->fcgiRequest = parent;
@@ -11,6 +13,19 @@ ParsedRequest::ParsedRequest(QFCgiRequest *parent) : QObject(parent)
     }
 
     this->scriptURL = this->params["SCRIPT_URL"]; // I need this for sure, so I want a variable
+
+    ranBuf = new char[RAN_BUF_SIZE];
+
+    getrandom(ranBuf, RAN_BUF_SIZE, 0);
+    iv = QByteArray(ranBuf, RAN_BUF_SIZE);
+
+    getrandom(ranBuf, RAN_BUF_SIZE, 0);
+    cipherKey = QByteArray(ranBuf, RAN_BUF_SIZE);
+}
+
+ParsedRequest::~ParsedRequest()
+{
+    delete[] ranBuf;
 }
 
 void ParsedRequest::addFile(UploadedFile &uploaded_file)

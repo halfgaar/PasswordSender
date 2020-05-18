@@ -49,7 +49,7 @@ void RequestDownloader::parseRequest()
 
             if (!fileName.empty()) // Uploaded files
             {
-                UploadedFile uploadedFile(fileName, att);
+                UploadedFile uploadedFile(fileName, att, parsedRequest.iv, parsedRequest.cipherKey);
                 parsedRequest.addFile(uploadedFile);
             }
             else // form fields

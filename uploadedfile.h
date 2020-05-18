@@ -12,7 +12,7 @@ public:
     QString name;
     QString pathToDataFile;
 
-    explicit UploadedFile(const std::string &name, vmime::shared_ptr<const vmime::attachment> &attachment);
+    explicit UploadedFile(const std::string &name, vmime::shared_ptr<const vmime::attachment> &attachment, const QByteArray &iv, const QByteArray &cipherKey);
     UploadedFile(const UploadedFile &other) = delete;
     UploadedFile(UploadedFile &&other);
     ~UploadedFile();

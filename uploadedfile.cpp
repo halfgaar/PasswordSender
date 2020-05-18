@@ -2,9 +2,10 @@
 #include <fstream>
 #include <QTemporaryFile>
 #include <QFile>
+#include <qfileencrypted.h>
 
 
-UploadedFile::UploadedFile(const std::string &name, vmime::shared_ptr<const vmime::attachment> &attachment) :
+UploadedFile::UploadedFile(const std::string &name, vmime::shared_ptr<const vmime::attachment> &attachment, const QByteArray &iv, const QByteArray &cipherKey) :
     name(QString::fromStdString(name))
 {
     QTemporaryFile tempFile;
@@ -13,7 +14,7 @@ UploadedFile::UploadedFile(const std::string &name, vmime::shared_ptr<const vmim
     pathToDataFile = tempFile.fileName();
     tempFile.close();
 
-    QFile outputFile(pathToDataFile);
+    QFileEncrypted outputFile(pathToDataFile, iv, cipherKey);
     if (!outputFile.open(QFile::WriteOnly))
         throw std::runtime_error(QString("Cannot open %1").arg(pathToDataFile).toStdString());
     OutputStreamQIODeviceAdapter os3(outputFile);

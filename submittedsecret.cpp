@@ -1,12 +1,15 @@
 #include "submittedsecret.h"
 
-SubmittedSecret::SubmittedSecret(QString &recipient, QString &passwordField, std::vector<UploadedFile> &uploadedFiles) :
-    passwordField(passwordField),
+SubmittedSecret::SubmittedSecret(ParsedRequest *parsedRequest) :
     uuid(QUuid::createUuid().toString().replace('{', "").replace('}',"")), // My Qt version doesn't have the StringFormat option.
-    recipient(recipient),
     submittedAt(QDateTime::currentDateTime())
 {
-    for (UploadedFile &uploadedFile : uploadedFiles)
+    recipient = parsedRequest->formFields["recipient"].value;
+    passwordField = parsedRequest->formFields["password"].value;
+    iv = parsedRequest->iv;
+    cipherKey = parsedRequest->cipherKey;
+
+    for (UploadedFile &uploadedFile : parsedRequest->files)
     {
         std::shared_ptr<SecretFile> s(new SecretFile(this, uploadedFile));
         this->secretFiles[s->uuid] = s;
@@ -52,4 +55,14 @@ QString SecretFile::getLink()
     // TODO: don't hardcode hostname
     QString result = QString("https://wachtwoorden.geborsteldstaal.nl/passwordsender/downloadfile/%1/%2").arg(parentSecret->uuid).arg(this->uuid);
     return result;
+}
+
+QByteArray SecretFile::getIv()
+{
+    return parentSecret->iv;
+}
+
+QByteArray SecretFile::getCipherKey()
+{
+    return parentSecret->cipherKey;
 }

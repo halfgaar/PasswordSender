@@ -30,9 +30,10 @@ add_executable(PasswordSender main.cpp
     requestuploader.cpp
     outputstreamqiodeviceadapter.cpp
     inputstreamqfileadapter.cpp
+    qfileencrypted.cpp
   )
 
-target_link_libraries(PasswordSender qfcgi Qt5::Core Qt5::Network vmime)
+target_link_libraries(PasswordSender qfcgi Qt5::Core Qt5::Network vmime crypto)
 
 install(TARGETS PasswordSender
   RUNTIME DESTINATION /home/halfgaar/

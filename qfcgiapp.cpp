@@ -116,8 +116,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
     {
         if (parsedRequest->scriptURL == "/passwordsender/upload")
         {
-            std::shared_ptr<SubmittedSecret> secret(new SubmittedSecret(parsedRequest->formFields["recipient"].value,
-                                                    parsedRequest->formFields["password"].value, parsedRequest->files));
+            std::shared_ptr<SubmittedSecret> secret(new SubmittedSecret(parsedRequest));
 
             if (!secret->isValid())
             {

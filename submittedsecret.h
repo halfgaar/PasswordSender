@@ -22,8 +22,10 @@ public:
     QHash<QString,std::shared_ptr<SecretFile>> secretFiles;
     QString recipient;
     QDateTime submittedAt;
+    QByteArray iv;
+    QByteArray cipherKey;
 
-    SubmittedSecret(QString &recipient, QString &passwordField, std::vector<UploadedFile> &uploadedFiles);
+    SubmittedSecret(ParsedRequest *parsedRequest);
     SubmittedSecret(const SubmittedSecret &other) = delete;
     SubmittedSecret(SubmittedSecret &&other) = delete;
     ~SubmittedSecret();
@@ -49,6 +51,8 @@ public:
     ~SecretFile();
     SecretFile & operator=(const SecretFile&) = delete;
     QString getLink();
+    QByteArray getIv();
+    QByteArray getCipherKey();
 };
 
 #endif // SUBMITTEDSECRET_H

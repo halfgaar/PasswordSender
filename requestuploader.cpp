@@ -2,20 +2,22 @@
 #include "QTextStream"
 #include "QDataStream"
 #include <iostream>
+#include <QDebug>
+#include <QTimer>
 
 RequestUploader::RequestUploader(QIODevice *output, std::shared_ptr<SecretFile> &secretFile, QFCgiRequest *request) : QObject(request),
     output(output),
     fileToUpload(secretFile),
-    handle(new QFile(secretFile->filePath)),
+    handle(new QFileEncrypted(secretFile->filePath, secretFile->getIv(), secretFile->getCipherKey())),
     request(request)
 {
-    qint64 len = handle->size();
+    contentLength = handle->size();
 
     QTextStream ts(output);
     ts << "Status: " << 200 << "\r\n"; // Not HTTP header, but FCGI header.
     ts << "Content-Disposition: attachment; filename=\"" << secretFile->name.toUtf8().replace('"', "\\") << "\"\r\n";
     ts << "Content-Type: octet-stream\r\n";
-    ts << "Content-Length: " << len << "\r\n";
+    ts << "Content-Length: " << contentLength << "\r\n";
     ts << "\r\n";
     ts.flush();
 
@@ -28,7 +30,7 @@ RequestUploader::RequestUploader(QIODevice *output, std::shared_ptr<SecretFile> 
     timeoutTimer.setInterval(10000);
     connect(&timeoutTimer, &QTimer::timeout, this, &RequestUploader::onTimeout);
 
-    connect(output, &QFile::bytesWritten, this, &RequestUploader::onBytesWritten);
+    connect(output, &QIODevice::bytesWritten, this, &RequestUploader::onBytesWritten);
 }
 
 /**
@@ -40,10 +42,9 @@ RequestUploader::RequestUploader(QIODevice *output, std::shared_ptr<SecretFile> 
  */
 void RequestUploader::uploadNextChunk()
 {
-    QFile *in = this->handle.get();
     QIODevice *out = this->output;
 
-    QByteArray chunk = in->read(65536);
+    QByteArray chunk = handle->read(65536);
     out->write(chunk);
 
     timeoutTimer.start();
@@ -51,12 +52,15 @@ void RequestUploader::uploadNextChunk()
 
 void RequestUploader::onBytesWritten(qint64 nbytes)
 {
-    Q_UNUSED(nbytes)
+    bytesUploaded += nbytes;
 
-    if (this->handle->atEnd())
+    if (bytesUploaded >= contentLength)
     {
         this->timeoutTimer.stop();
-        emit uploadDone();
+        this->handle->close();
+
+        // Make sure this is put at the end of the event queue, otherwise there is a race condition with upstream reading out the socket and us disconnecting it.
+        QTimer::singleShot(0, this, &RequestUploader::uploadDone);
     }
     else
         uploadNextChunk();
@@ -65,5 +69,6 @@ void RequestUploader::onBytesWritten(qint64 nbytes)
 void RequestUploader::onTimeout()
 {
     std::cerr << "Timing out upload request" << std::endl;
+    this->handle->close();
     this->request->endRequest(1);
 }
