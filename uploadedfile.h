@@ -4,6 +4,7 @@
 #include <QString>
 #include <string>
 #include <vmime/vmime.hpp>
+#include "outputstreamqiodeviceadapter.h"
 
 class UploadedFile
 {

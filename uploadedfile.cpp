@@ -1,6 +1,7 @@
 #include "uploadedfile.h"
 #include <fstream>
 #include <QTemporaryFile>
+#include <QFile>
 
 
 UploadedFile::UploadedFile(const std::string &name, vmime::shared_ptr<const vmime::attachment> &attachment) :
@@ -12,11 +13,13 @@ UploadedFile::UploadedFile(const std::string &name, vmime::shared_ptr<const vmim
     pathToDataFile = tempFile.fileName();
     tempFile.close();
 
-    std::ofstream dumpFile(pathToDataFile.toStdString(), std::ios_base::trunc);
-    vmime::utility::outputStreamAdapter os2(dumpFile);
-    attachment->getData()->extractRaw(os2);
-    dumpFile.flush();
-    dumpFile.close();
+    QFile outputFile(pathToDataFile);
+    if (!outputFile.open(QFile::WriteOnly))
+        throw std::runtime_error(QString("Cannot open %1").arg(pathToDataFile).toStdString());
+    OutputStreamQIODeviceAdapter os3(outputFile);
+    attachment->getData()->extractRaw(os3);
+    outputFile.flush();
+    outputFile.close();
 }
 
 UploadedFile::UploadedFile(UploadedFile &&other)
