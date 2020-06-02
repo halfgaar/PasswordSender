@@ -41,6 +41,7 @@ void QFcgiApp::renderReponse(const QString &templateFilePath, const int httpCode
     QTextStream ts(out);
     ts << "Status: " << httpCode << "\r\n"; // Not HTTP header, but FCGI header.
     ts << "Content-Type: text/html\r\n";
+    ts << "Cache-Control: no-store\r\n";
     ts << "\r\n";
     ts << templateData;
     ts.flush();
