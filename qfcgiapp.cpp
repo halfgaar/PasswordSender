@@ -142,7 +142,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 
             if (!secret)
             {
-                throw UserError("Dit geheim bestaat niet (meer). Mogelijk is hij verlopen.");
+                throw UserError("Dit geheim bestaat niet (meer). Mogelijk is hij verlopen.", 404);
             }
             else if (!secret->isValid())
             {
@@ -172,7 +172,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 
             if (uuid.isEmpty())
             {
-                throw UserError("Geen geheim opgegeven. Je zit de boel te flessen.");
+                throw UserError("Geen geheim opgegeven. Je zit de boel te flessen.", 500);
             }
 
             QHash<QString,QString> vars;
