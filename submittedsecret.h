@@ -24,6 +24,7 @@ public:
     QDateTime submittedAt;
     QByteArray iv;
     QByteArray cipherKey;
+    QString httpHost;
 
     SubmittedSecret(ParsedRequest *parsedRequest);
     SubmittedSecret(const SubmittedSecret &other) = delete;

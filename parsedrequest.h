@@ -20,6 +20,7 @@ public:
     QHash<QString,QString> params;
 
     QString scriptURL;
+    QString httpHost;
     QFCgiRequest *fcgiRequest = nullptr;
 
     QByteArray iv = QByteArray(32,0);

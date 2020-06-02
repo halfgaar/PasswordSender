@@ -8,6 +8,7 @@ SubmittedSecret::SubmittedSecret(ParsedRequest *parsedRequest) :
     passwordField = parsedRequest->formFields["password"].value;
     iv = parsedRequest->iv;
     cipherKey = parsedRequest->cipherKey;
+    httpHost = parsedRequest->httpHost;
 
     for (UploadedFile &uploadedFile : parsedRequest->files)
     {
@@ -23,8 +24,7 @@ SubmittedSecret::~SubmittedSecret()
 
 QString SubmittedSecret::getLink()
 {
-    // TODO: don't hardcode hostname
-    QString result = QString("https://wachtwoorden.geborsteldstaal.nl/passwordsender/showlanding/%1").arg(this->uuid);
+    QString result = QString("https://%1/passwordsender/showlanding/%2").arg(httpHost).arg(this->uuid);
     return result;
 }
 
@@ -52,8 +52,7 @@ SecretFile::~SecretFile()
 
 QString SecretFile::getLink()
 {
-    // TODO: don't hardcode hostname
-    QString result = QString("https://wachtwoorden.geborsteldstaal.nl/passwordsender/downloadfile/%1/%2").arg(parentSecret->uuid).arg(this->uuid);
+    QString result = QString("https://%1/passwordsender/downloadfile/%2/%3").arg(parentSecret->httpHost).arg(parentSecret->uuid).arg(this->uuid);
     return result;
 }
 

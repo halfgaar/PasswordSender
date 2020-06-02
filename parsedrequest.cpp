@@ -12,7 +12,25 @@ ParsedRequest::ParsedRequest(QFCgiRequest *parent) : QObject(parent)
         this->params[s] = parent->getParam(s);
     }
 
-    this->scriptURL = this->params["SCRIPT_URL"]; // I need this for sure, so I want a variable
+    /* There's a difference between Apache's fcgi params and Nginx's. Apache passes, for instance:
+     *
+     *   SCRIPT_URL = /passwordsender/upload?querystringarg=1 (although we don't use query strings.
+     *   SCRIPT_URI = https://passwords.mydomain.nl/passwordsender/upload?querystringarg=1
+     *   HTTP_HOST = passwords.mydomain.nl
+     *   [nothing for request method?]
+     *
+     * Nginx passes (I think, I didn't test):
+     *
+     *   REQUEST_URI = /passwordsender/upload?querystringarg=1
+     *   SERVER_NAME = passwords.mydomain.nl
+     *   REQUEST_METHOD = GET/POST/PUT/DELETE?
+     *
+     * TODO: detect which ones and unify.
+     *
+     * Anyway, we store the important ones in variables, because I want easy access.
+     */
+    this->scriptURL = this->params["SCRIPT_URL"];
+    this->httpHost = this->params["HTTP_HOST"];
 
     ranBuf = new char[RAN_BUF_SIZE];
 
