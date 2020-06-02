@@ -20,6 +20,11 @@ QFcgiApp::QFcgiApp(int argc, char *argv[]) : QCoreApplication(argc, argv)
       qCritical() << this->fcgi->errorString();
       QTimer::singleShot(0, this, &QFcgiApp::quit);
     }
+
+    cleanupTimer.setInterval(1000*60);
+    cleanupTimer.setSingleShot(false);
+    connect(&cleanupTimer, &QTimer::timeout, this, &QFcgiApp::onCleanupTimerElapsed);
+    cleanupTimer.start();
 }
 
 QFcgiApp::~QFcgiApp()
@@ -113,11 +118,12 @@ void QFcgiApp::onUploadDone()
 void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 {
     QIODevice *out = parsedRequest->fcgiRequest->getOut();
+    const auto &submittedSecretsConst = submittedSecrets;
     try
     {
         if (parsedRequest->scriptURL == "/passwordsender/upload")
         {
-            std::shared_ptr<SubmittedSecret> secret(new SubmittedSecret(parsedRequest));
+            SubmittedSecret_p secret(new SubmittedSecret(parsedRequest));
 
             if (!secret->isValid())
             {
@@ -138,7 +144,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
         else if (parsedRequest->scriptURL == "/passwordsender/show")
         {
             const QString &uuid = parsedRequest->formFields["uuid"].value;
-            std::shared_ptr<SubmittedSecret> secret = this->submittedSecrets[uuid];
+            SubmittedSecret_p secret = submittedSecretsConst[uuid];
 
             if (!secret)
             {
@@ -162,7 +168,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
             vars["{filelink}"] = fileLink;
             renderReponse("/var/www/html/password_sender/showsecrettemplate.html", 200, out, vars);
 
-            //this->submittedSecrets.remove(uuid); // TODO: I think we need an expire an hour, otherwise you can't download the files.
+            secret->expireSoon();
             parsedRequest->requestDone(0);
         }
         else if (parsedRequest->scriptURL.startsWith("/passwordsender/showlanding/"))
@@ -191,7 +197,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
                 throw UserError("Geen geheim of bestand opgegeven. Je zit de boel te flessen.");
             }
 
-            std::shared_ptr<SubmittedSecret> secret = this->submittedSecrets[secretUuid];
+            SubmittedSecret_p secret = submittedSecretsConst[secretUuid];
 
             if (!secret)
             {
@@ -238,6 +244,21 @@ void QFcgiApp::onConnectionClose()
     {
         this->requests.remove(ioDev);
         ioDev = nullptr;
+    }
+}
+
+void QFcgiApp::onCleanupTimerElapsed()
+{
+    auto i = submittedSecrets.begin();
+    while(i != submittedSecrets.end())
+    {
+        SubmittedSecret_p p = *i;
+        if (p && p->hasExpired())
+        {
+            i = submittedSecrets.erase(i);
+        }
+        else
+            i++;
     }
 }
 

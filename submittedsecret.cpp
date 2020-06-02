@@ -2,7 +2,8 @@
 
 SubmittedSecret::SubmittedSecret(ParsedRequest *parsedRequest) :
     uuid(QUuid::createUuid().toString().replace('{', "").replace('}',"")), // My Qt version doesn't have the StringFormat option.
-    submittedAt(QDateTime::currentDateTime())
+    submittedAt(QDateTime::currentDateTime()),
+    expiresAt(submittedAt.addDays(3))
 {
     recipient = parsedRequest->formFields["recipient"].value;
     passwordField = parsedRequest->formFields["password"].value;
@@ -31,6 +32,20 @@ QString SubmittedSecret::getLink()
 bool SubmittedSecret::isValid()
 {
     return !recipient.isEmpty() && !passwordField.isEmpty();
+}
+
+void SubmittedSecret::expireSoon()
+{
+    if (!seen)
+    {
+        seen = true;
+        expiresAt = QDateTime::currentDateTime().addSecs(3600);
+    }
+}
+
+bool SubmittedSecret::hasExpired()
+{
+    return expiresAt < QDateTime::currentDateTime();
 }
 
 SecretFile::SecretFile(SubmittedSecret *parentSecret, UploadedFile &uploadedFile) :

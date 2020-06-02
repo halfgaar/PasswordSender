@@ -22,6 +22,8 @@ public:
     QHash<QString,std::shared_ptr<SecretFile>> secretFiles;
     QString recipient;
     QDateTime submittedAt;
+    QDateTime expiresAt;
+    bool seen = false;
     QByteArray iv;
     QByteArray cipherKey;
     QString httpHost;
@@ -33,7 +35,11 @@ public:
     SubmittedSecret & operator=(const SubmittedSecret&) = delete;
     QString getLink();
     bool isValid();
+    void expireSoon();
+    bool hasExpired();
 };
+
+typedef std::shared_ptr<SubmittedSecret> SubmittedSecret_p;
 
 /**
  * @brief The SecretFile class is a file of a secret. Because the class also manages a file, it's non copyable or movable. Used smart pointers to manage.

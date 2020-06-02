@@ -10,13 +10,15 @@
 #include "emailsender.h"
 #include <QHash>
 #include "usererror.h"
+#include "QTimer"
 
 class QFcgiApp : public QCoreApplication
 {
     QFCgi *fcgi = nullptr;
     QHash<QIODevice*, RequestDownloader*> requests;
-    QHash<QString, std::shared_ptr<SubmittedSecret>> submittedSecrets;
+    QHash<QString, SubmittedSecret_p> submittedSecrets;
     EmailSender emailSender;
+    QTimer cleanupTimer;
 
 public:
     QFcgiApp(int argc, char *argv[]);
@@ -30,6 +32,7 @@ private slots:
     void onUploadDone();
     void requestParsed(ParsedRequest *parsedRequest);
     void onConnectionClose();
+    void onCleanupTimerElapsed();
 };
 
 #endif // QFCGIAPP_H
