@@ -5,26 +5,62 @@
 #include "QThread"
 #include <QString>
 #include "iostream"
+#include <QCommandLineParser>
+#include <QDir>
 
 QFcgiApp::QFcgiApp(int argc, char *argv[]) : QCoreApplication(argc, argv)
 {
+    QCoreApplication::setApplicationName("PasswordSender");
+
+    QCommandLineParser parser;
+    parser.setApplicationDescription("FastCGI app for hosting a little webapp to send secrets.");
+    parser.addHelpOption();
+
+    parser.addOption({"listen-port", "The port to listen on. Always localhost. Default 9000.", "port", "9000"});
+    parser.addOption({"template-dir", "The dir with the templates. Should not be in the docroot of the webserver.", "dir"});
+
+    parser.process(*this);
+
+    bool isInt = false;
+    uint port = parser.value("listen-port").toUInt(&isInt);
+    if (!isInt)
+    {
+        qCritical("Port number is not a number.");
+        return;
+    }
+
+    templateDir = QDir::cleanPath(parser.value("template-dir"));
+    QDir dir(templateDir);
+    if (templateDir.isEmpty())
+    {
+        qCritical() << "Template dir is not given.";
+        return;
+    }
+    if (!dir.exists(templateDir) || !dir.isReadable())
+    {
+        qCritical() << "Template dir " << templateDir << "not found or not readable.";
+        return;
+    }
+
     fcgi = new QFCgi(this);
     connect(fcgi, &QFCgi::newRequest, this, &QFcgiApp::onNewRequest);
 
-    fcgi->configureListen(QHostAddress::Any, 9000);
+    fcgi->configureListen(QHostAddress::Any, port);
 
     this->fcgi->start();
 
     if (!this->fcgi->isStarted())
     {
-      qCritical() << this->fcgi->errorString();
-      QTimer::singleShot(0, this, &QFcgiApp::quit);
+        qCritical() << this->fcgi->errorString();
+        return;
     }
 
     cleanupTimer.setInterval(1000*60);
     cleanupTimer.setSingleShot(false);
     connect(&cleanupTimer, &QTimer::timeout, this, &QFcgiApp::onCleanupTimerElapsed);
     cleanupTimer.start();
+
+    initialized = true;
 }
 
 QFcgiApp::~QFcgiApp()
@@ -32,10 +68,15 @@ QFcgiApp::~QFcgiApp()
 
 }
 
-void QFcgiApp::renderReponse(const QString &templateFilePath, const int httpCode, QIODevice *out, const QHash<QString,QString> &templateVariables)
+void QFcgiApp::renderReponse(const QString &templateFileName, const int httpCode, QIODevice *out, const QHash<QString,QString> &templateVariables)
 {
+    const QString templateFilePath = QDir::cleanPath(templateDir + QDir::separator() + templateFileName);
     QFile f(templateFilePath);
-    f.open(QFile::ReadOnly);
+    if (!f.open(QFile::ReadOnly))
+    {
+        QString msg = QString("Can't open template %1").arg(templateFilePath);
+        throw std::runtime_error(msg.toStdString());
+    }
     QString templateData = QString::fromUtf8(f.readAll());
 
     for (const QString &key : templateVariables.keys())
@@ -86,7 +127,7 @@ void QFcgiApp::onNewRequest(QFCgiRequest *request)
     {
         QHash<QString,QString> vars;
         vars["{errormsg}"] = ex.what();
-        renderReponse("/var/www/html/password_sender/errortemplate.html", 500, request->getOut(), vars);
+        renderReponse("errortemplate.html", 500, request->getOut(), vars);
         request->endRequest(1);
     }
 }
@@ -104,7 +145,7 @@ void QFcgiApp::onReadyRead()
     {
         QHash<QString,QString> vars;
         vars["{errormsg}"] = ex.what();
-        renderReponse("/var/www/html/password_sender/errortemplate.html", 500, downloader->request->getOut(), vars);
+        renderReponse("errortemplate.html", 500, downloader->request->getOut(), vars);
         downloader->request->endRequest(1);
     }
 }
@@ -138,7 +179,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 
             QHash<QString,QString> vars;
             vars["{message}"] = msg;
-            renderReponse("/var/www/html/password_sender/template.html", 200, out, vars);
+            renderReponse("template.html", 200, out, vars);
             parsedRequest->requestDone(0);
         }
         else if (parsedRequest->scriptURL == "/passwordsender/show")
@@ -166,7 +207,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
             QHash<QString,QString> vars;
             vars["{secret}"] = secret->passwordField;
             vars["{filelink}"] = fileLink;
-            renderReponse("/var/www/html/password_sender/showsecrettemplate.html", 200, out, vars);
+            renderReponse("showsecrettemplate.html", 200, out, vars);
 
             secret->expireSoon();
             parsedRequest->requestDone(0);
@@ -183,7 +224,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 
             QHash<QString,QString> vars;
             vars["{uuid}"] = uuid;
-            renderReponse("/var/www/html/password_sender/showlandingtemplate.html", 200, out, vars);
+            renderReponse("showlandingtemplate.html", 200, out, vars);
             parsedRequest->requestDone(0);
         }
         else if (parsedRequest->scriptURL.startsWith("/passwordsender/downloadfile/")) // URL like /passwordsender/downloadfile/[uuid-secret]/[uuid-file]
@@ -224,14 +265,14 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
     {
         QHash<QString,QString> vars;
         vars["{errormsg}"] = ex.what();
-        renderReponse("/var/www/html/password_sender/errortemplate.html", ex.httpCode, out, vars);
+        renderReponse("errortemplate.html", ex.httpCode, out, vars);
         parsedRequest->requestDone(1);
     }
     catch (std::exception)
     {
         QHash<QString,QString> vars;
         vars["{errormsg}"] = "System error";
-        renderReponse("/var/www/html/password_sender/errortemplate.html", 500, out, vars);
+        renderReponse("errortemplate.html", 500, out, vars);
         parsedRequest->requestDone(1);
     }
 }

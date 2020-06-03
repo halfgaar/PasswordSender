@@ -14,6 +14,9 @@ int main(int argc, char *argv[])
 {
     QFcgiApp a(argc, argv);
 
+    if (!a.isInitialized())
+        return 1;
+
     struct sigaction sa;
 
     memset(&sa, 0, sizeof(struct sigaction));

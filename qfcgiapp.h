@@ -19,12 +19,15 @@ class QFcgiApp : public QCoreApplication
     QHash<QString, SubmittedSecret_p> submittedSecrets;
     EmailSender emailSender;
     QTimer cleanupTimer;
+    QString templateDir;
+    bool initialized = false;
+
+    void renderReponse(const QString &templateFileName, const int httpCode, QIODevice *out, const QHash<QString, QString> &templateVariables);
 
 public:
     QFcgiApp(int argc, char *argv[]);
     ~QFcgiApp();
-
-    void renderReponse(const QString &templateFilePath, const int httpCode, QIODevice *out, const QHash<QString, QString> &templateVariables);
+    bool isInitialized() { return initialized; }
 
 private slots:
     void onNewRequest(QFCgiRequest *request);
