@@ -263,13 +263,15 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
     }
     catch (UserError &ex)
     {
+        qWarning() << ex.what();
         QHash<QString,QString> vars;
         vars["{errormsg}"] = ex.what();
         renderReponse("errortemplate.html", ex.httpCode, out, vars);
         parsedRequest->requestDone(1);
     }
-    catch (std::exception)
+    catch (std::exception &ex)
     {
+        qWarning() << ex.what();
         QHash<QString,QString> vars;
         vars["{errormsg}"] = "System error";
         renderReponse("errortemplate.html", 500, out, vars);
