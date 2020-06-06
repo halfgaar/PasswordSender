@@ -34,10 +34,12 @@ ParsedRequest::ParsedRequest(QFCgiRequest *parent) : QObject(parent)
 
     ranBuf = new char[RAN_BUF_SIZE];
 
-    getrandom(ranBuf, RAN_BUF_SIZE, 0);
+    if (getrandom(ranBuf, RAN_BUF_SIZE, 0) != RAN_BUF_SIZE)
+        throw std::runtime_error("Not enough random entroy?");
     iv = QByteArray(ranBuf, RAN_BUF_SIZE);
 
-    getrandom(ranBuf, RAN_BUF_SIZE, 0);
+    if (getrandom(ranBuf, RAN_BUF_SIZE, 0) != RAN_BUF_SIZE)
+        throw std::runtime_error("Not enough random entroy?");
     cipherKey = QByteArray(ranBuf, RAN_BUF_SIZE);
 }
 
