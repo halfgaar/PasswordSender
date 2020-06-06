@@ -20,6 +20,7 @@
 class QFileEncrypted : public QFile
 {
     Q_OBJECT
+    Q_DISABLE_COPY(QFileEncrypted)
 
     EVP_CIPHER_CTX *writeCipherContext;
     EVP_CIPHER_CTX *readCipherContext;
