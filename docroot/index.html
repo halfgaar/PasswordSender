@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+    <meta name="author" content="Wiebe Cazemier">
+    <title>Password Courier</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+    <link href="/gspasswords.css" rel="stylesheet">
+  </head>
+  <body class="text-center">
+  <form class="form-gspasswords" enctype="multipart/form-data" action="/passwordsender/upload" method="POST">
+    <img class="mb-4" src="/gs-logo2.png" alt="logo" width="102" height="82">
+    <h1 class="h3 mb-3 font-weight-normal">Password Courier</h1>
+    <input name="recipient" type="email" autocomplete="off" class="form-control" placeholder="Ontvanger als pietje@gmail.com" required autofocus>
+    <textarea name="password" class="form-control" placeholder="Vul hier geheime informatie in" required></textarea>
+    <input name="uploadedfile" class="form-control" type="file" />
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Stuur op</button>
+  </form>
+</body>
+</html>
