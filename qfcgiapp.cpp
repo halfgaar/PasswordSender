@@ -37,8 +37,20 @@ QFcgiApp::QFcgiApp(int argc, char *argv[]) : QCoreApplication(argc, argv)
 
     parser.addOption({"listen-port", "The port to listen on. Always localhost. Default 9000.", "port", "9000"});
     parser.addOption({"template-dir", "The dir with the templates. Should not be in the docroot of the webserver.", "dir"});
+    parser.addOption({"license", "Show license info."});
 
     parser.process(*this);
+
+    if (parser.isSet("license"))
+    {
+        std::cout << "Copyright (C) 2020 Wiebe Cazemier." << std::endl
+                  << "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>." << std::endl
+                  << "This is free software: you are free to change and redistribute it." << std::endl
+                  << "There is NO WARRANTY, to the extent permitted by law." << std::endl
+                  << std::endl
+                  << "Written by Wiebe Cazemier <wiebe@halfgaar.net>." << std::endl;
+        return;
+    }
 
     bool isInt = false;
     uint port = parser.value("listen-port").toUInt(&isInt);
