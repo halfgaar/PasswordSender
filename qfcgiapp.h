@@ -36,7 +36,7 @@ class QFcgiApp : public QCoreApplication
     QFCgi *fcgi = nullptr;
     QHash<QIODevice*, RequestDownloader*> requests;
     QHash<QString, SubmittedSecret_p> submittedSecrets;
-    EmailSender emailSender;
+    QScopedPointer<EmailSender> emailSender;
     QTimer cleanupTimer;
     QString templateDir;
     bool initialized = false;

@@ -1,0 +1,9 @@
+Hallo,
+
+U heeft een wachtwoord ontvangen. Klik op de volgende link:
+
+{link}
+
+Groet,
+
+Geborsteld Staal

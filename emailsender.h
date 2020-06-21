@@ -28,8 +28,11 @@ class EmailSender
 {
     vmime::shared_ptr<vmime::net::session> vmimeSession;
     vmime::shared_ptr<vmime::net::transport> transport;
+    QString from;
+    QString subject;
+    QString templatePath;
 public:
-    EmailSender();
+    EmailSender(const QString &from, const QString &subject, const QString &templateDir);
     void SendEmail(SubmittedSecret &secret);
 };
 

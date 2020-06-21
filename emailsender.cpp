@@ -19,8 +19,13 @@
 
 #include "emailsender.h"
 #include "iostream"
+#include <QDir>
+#include <QDebug>
 
-EmailSender::EmailSender()
+EmailSender::EmailSender(const QString &from, const QString &subject, const QString &templateDir) :
+    from(from),
+    subject(subject),
+    templatePath(QDir::cleanPath(templateDir + QDir::separator() + "emailtemplate.txt"))
 {
     vmimeSession = vmime::net::session::create();
     vmime::utility::url url("sendmail://localhost");
@@ -41,21 +46,22 @@ void EmailSender::SendEmail(SubmittedSecret &secret)
     header->appendField(recipient);
 
     auto from = hfFactory->create(vmime::fields::FROM);
-    from->setValue("Geborsteld Staal's Wachtwoordenkoerier <noreply@geborsteldstaal.nl>");
+    from->setValue(this->from.toStdString());
     header->appendField(from);
 
     auto subject = hfFactory->create(vmime::fields::SUBJECT);
     subject->setValue("U heeft een wachtwoord ontvangen");
     header->appendField(subject);
 
-    QString bodyMsg = QString("Hallo,\n"
-                              "\n"
-                              "%1\n"
-                              "\n"
-                              "Groet,\n"
-                              "\n"
-                              "Geborsteld Staal").arg(secret.getLink());
+    QFile f(templatePath);
 
+    if (!f.exists() || !f.open(QFile::ReadOnly))
+    {
+        QString err = QString("Error opening %1. Does it exists and do you have permissions?").arg(templatePath);
+        throw std::runtime_error(err.toStdString());
+    }
+
+    QByteArray bodyMsg = f.readAll().replace("{link}", secret.getLink().toUtf8());
     body->setContents(vmime::make_shared<vmime::stringContentHandler>(bodyMsg.toStdString()));
 
     transport->connect();

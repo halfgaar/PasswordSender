@@ -26,6 +26,7 @@
 #include "iostream"
 #include <QCommandLineParser>
 #include <QDir>
+#include <QRegularExpression>
 
 QFcgiApp::QFcgiApp(int argc, char *argv[]) : QCoreApplication(argc, argv)
 {
@@ -37,6 +38,8 @@ QFcgiApp::QFcgiApp(int argc, char *argv[]) : QCoreApplication(argc, argv)
 
     parser.addOption({"listen-port", "The port to listen on. Always localhost. Default 9000.", "port", "9000"});
     parser.addOption({"template-dir", "The dir with the templates. Should not be in the docroot of the webserver.", "dir"});
+    parser.addOption({"from", "E-mail header contents, like 'Chancellor Gowron <gowron@kling.on>'", "from"});
+    parser.addOption({"subject", "Subject of the e-mail which contains the link", "subject"});
     parser.addOption({"license", "Show license info."});
 
     parser.process(*this);
@@ -72,6 +75,21 @@ QFcgiApp::QFcgiApp(int argc, char *argv[]) : QCoreApplication(argc, argv)
         qCritical() << "Template dir " << templateDir << "not found or not readable.";
         return;
     }
+
+    QRegularExpression r("^.+ <.+@.+>$");
+    if (!parser.isSet("from") || !r.match(parser.value("from")).hasMatch())
+    {
+        qWarning("'From' not in correct format like 'Chancellor Gowron <gowron@kling.on>'");
+        return;
+    }
+
+    if (!parser.isSet("subject"))
+    {
+        qWarning("Subject not set");
+        return;
+    }
+
+    emailSender.reset(new EmailSender(parser.value("from"), parser.value("subject"), templateDir));
 
     fcgi = new QFCgi(this);
     connect(fcgi, &QFCgi::newRequest, this, &QFcgiApp::onNewRequest);
@@ -206,7 +224,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
 
             QString msg = QString("Informatie gestuurd naar %1").arg(secret->recipient);
 
-            this->emailSender.SendEmail(*secret);
+            this->emailSender->SendEmail(*secret);
 
             QHash<QString,QString> vars;
             vars["{message}"] = msg;
