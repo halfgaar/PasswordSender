@@ -254,7 +254,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
             }
 
             QHash<QString,QString> vars;
-            vars["{secret}"] = secret->passwordField;
+            vars["{secret}"] = secret->passwordField.toHtmlEscaped();
             vars["{filelink}"] = fileLink;
             renderReponse("showsecrettemplate.html", 200, out, vars);
 
