@@ -18,6 +18,7 @@
   */
 
 #include "submittedsecret.h"
+#include <QRegularExpression>
 
 SubmittedSecret::SubmittedSecret(ParsedRequest *parsedRequest) :
     uuid(QUuid::createUuid().toString().replace('{', "").replace('}',"")), // My Qt version doesn't have the StringFormat option.
@@ -50,7 +51,9 @@ QString SubmittedSecret::getLink()
 
 bool SubmittedSecret::isValid()
 {
-    return !recipient.isEmpty() && !passwordField.isEmpty();
+    QRegularExpression r(".+@.+\\..+");
+
+    return !recipient.isEmpty() && !passwordField.isEmpty() && r.match(recipient).hasMatch();
 }
 
 void SubmittedSecret::expireSoon()
