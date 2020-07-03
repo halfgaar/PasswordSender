@@ -130,7 +130,7 @@ void QFcgiApp::renderReponse(const QString &templateFileName, const int httpCode
 
     for (const QString &key : templateVariables.keys())
     {
-        templateData.replace(key, templateVariables[key]);
+        templateData.replace(key, templateVariables[key].toHtmlEscaped());
     }
 
     QTextStream ts(out);
@@ -254,7 +254,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
             }
 
             QHash<QString,QString> vars;
-            vars["{secret}"] = secret->passwordField.toHtmlEscaped();
+            vars["{secret}"] = secret->passwordField;
             vars["{filelink}"] = fileLink;
             renderReponse("showsecrettemplate.html", 200, out, vars);
 
