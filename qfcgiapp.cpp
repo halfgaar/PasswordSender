@@ -130,7 +130,23 @@ void QFcgiApp::renderReponse(const QString &templateFileName, const int httpCode
 
     for (const QString &key : templateVariables.keys())
     {
-        templateData.replace(key, templateVariables[key].toHtmlEscaped());
+        QString val = templateVariables[key];
+        if (key == "{userenteredlink}" && val.isEmpty())
+            val = "{removeline}";
+        templateData.replace(key, val.toHtmlEscaped());
+    }
+
+    QTextStream stream(&templateData);
+
+    QString line;
+    QString final;
+    while (stream.readLineInto(&line))
+    {
+        if (!line.contains("{removeline}"))
+        {
+            final.append(line);
+            final.append("\n");
+        }
     }
 
     QTextStream ts(out);
@@ -138,7 +154,7 @@ void QFcgiApp::renderReponse(const QString &templateFileName, const int httpCode
     ts << "Content-Type: text/html\r\n";
     ts << "Cache-Control: no-store\r\n";
     ts << "\r\n";
-    ts << templateData;
+    ts << final;
     ts.flush();
 }
 
@@ -256,6 +272,7 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
             QHash<QString,QString> vars;
             vars["{secret}"] = secret->passwordField;
             vars["{filelink}"] = fileLink;
+            vars["{userenteredlink}"] = secret->userEnteredLink;
             renderReponse("showsecrettemplate.html", 200, out, vars);
 
             secret->expireSoon();

@@ -40,6 +40,7 @@ public:
     QString uuid;
     QHash<QString,std::shared_ptr<SecretFile>> secretFiles;
     QString recipient;
+    QString userEnteredLink;
     QDateTime submittedAt;
     QDateTime expiresAt;
     bool seen = false;

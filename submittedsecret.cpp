@@ -18,6 +18,7 @@
   */
 
 #include "submittedsecret.h"
+#include "usererror.h"
 #include <QRegularExpression>
 
 SubmittedSecret::SubmittedSecret(ParsedRequest *parsedRequest) :
@@ -27,9 +28,15 @@ SubmittedSecret::SubmittedSecret(ParsedRequest *parsedRequest) :
 {
     recipient = parsedRequest->formFields["recipient"].value;
     passwordField = parsedRequest->formFields["password"].value;
+    userEnteredLink = parsedRequest->formFields["userenteredlink"].value;
     iv = parsedRequest->iv;
     cipherKey = parsedRequest->cipherKey;
     httpHost = parsedRequest->httpHost;
+
+    if (!userEnteredLink.isEmpty() && !userEnteredLink.startsWith("http"))
+    {
+        throw UserError("Link moet beginnen met http");
+    }
 
     for (UploadedFile &uploadedFile : parsedRequest->files)
     {
