@@ -261,17 +261,20 @@ void QFcgiApp::requestParsed(ParsedRequest *parsedRequest)
                 throw std::runtime_error("Secret invalid");
             }
 
-            QString fileLink;
+            QString fileLink = "{removeline}";
+            QString fileName = "{removeline}";
 
             if (!secret->secretFiles.empty())
             {
                 std::shared_ptr<SecretFile> file = *secret->secretFiles.begin(); // TODO: multiple files. The first is just for testing.
-                fileLink = QString("<a href=\"%1\">%2</a>").arg(file->getLink()).arg(file->name);
+                fileLink = file->getLink();
+                fileName = file->name;
             }
 
             QHash<QString,QString> vars;
             vars["{secret}"] = secret->passwordField;
             vars["{filelink}"] = fileLink;
+            vars["{filename}"] = fileName;
             vars["{userenteredlink}"] = secret->userEnteredLink;
             renderReponse("showsecrettemplate.html", 200, out, vars);
 
